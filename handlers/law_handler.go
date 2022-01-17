@@ -1,11 +1,7 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"math/rand"
-	"net/http"
 )
 
 type Law struct {
@@ -28,13 +24,6 @@ var HackerLaws = []Law{
 	},
 }
 
-func GetRandomLaw(w http.ResponseWriter, r *http.Request) {
-	randomLaw := HackerLaws[rand.Intn(len(HackerLaws))]
-	j, err := json.Marshal(randomLaw)
-	if err != nil {
-		http.Error(w, "couldn't retrieve random hacker law", http.StatusInternalServerError)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	io.Copy(w, bytes.NewReader(j))
+func GetRandomLaw() Law {
+	return HackerLaws[rand.Intn(len(HackerLaws))]
 }
