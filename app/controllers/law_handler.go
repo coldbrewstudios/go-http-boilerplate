@@ -1,15 +1,11 @@
-package handlers
+package controllers
 
 import (
+	"go-http-boilerplate/app/models"
 	"math/rand"
 )
 
-type Law struct {
-	Name       string `json:"name,omitempty"`
-	Definition string `json:"definition,omitempty"`
-}
-
-var HackerLaws = []Law{
+var HackerLaws = []models.Law{
 	{
 		Name:       "Amdahl's Law",
 		Definition: "Amdahl's Law is a formula which shows the potential speedup of a computational task which can be achieved by increasing the resources of a system.",
@@ -24,6 +20,6 @@ var HackerLaws = []Law{
 	},
 }
 
-func GetRandomLaw() Law {
+func GetRandomLaw() models.Law {
 	return HackerLaws[rand.Intn(len(HackerLaws))]
 }

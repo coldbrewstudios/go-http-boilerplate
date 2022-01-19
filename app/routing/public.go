@@ -2,7 +2,7 @@ package routing
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"go-http-boilerplate/handlers"
+	"go-http-boilerplate/app/controllers"
 )
 
 func CreatePublicRoutes(rg fiber.Router) {
@@ -11,6 +11,6 @@ func CreatePublicRoutes(rg fiber.Router) {
 	})
 
 	rg.Get("/law", func(ctx *fiber.Ctx) error {
-		return ctx.Status(fiber.StatusOK).JSON(handlers.GetRandomLaw())
+		return ctx.Status(fiber.StatusOK).JSON(controllers.GetRandomLaw())
 	})
 }
