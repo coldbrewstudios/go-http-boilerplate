@@ -14,48 +14,37 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 )
 
 //go:embed frontend/dist
 var frontend embed.FS
 
 func main() {
+	logger := logging.CreateLogger("service")
 	viper.SetConfigFile(".env")
 	err := viper.ReadInConfig()
 
 	if err != nil {
-		log.Fatalf("Error while reading config file %s", err)
+		logger.Error("Error while reading config file: ", err)
 	}
+
+	app := fiber.New()
+	setupMiddleware(app)
+	setupRouting(app)
+	StartServer(app, logger)
+}
+
+// setupMiddleware
+// Sets up all middleware for Fiber
+func setupMiddleware(app *fiber.App) {
+	var frontendAssets fs.FS
 
 	env, ok := viper.Get("ENVIRONMENT").(string)
 
 	if !ok {
 		log.Fatalf("Could not find port ENV variable")
 	}
-
-	logger := logging.CreateLogger(env, "service")
-	port, ok := viper.Get("PORT").(string)
-
-	if !ok {
-		log.Fatalf("Could not find port ENV variable")
-	}
-
-	app := fiber.New()
-	setupMiddleware(app, env)
-	setupRouting(app)
-	logger.Info("Application Bootstrap Complete")
-
-	listenErr := app.Listen(":" + port)
-
-	if listenErr != nil {
-		logger.Error("Error during listen", listenErr)
-	}
-}
-
-// setupMiddleware
-// Sets up all middleware for Fiber
-func setupMiddleware(app *fiber.App, env string) {
-	var frontendAssets fs.FS
 
 	if env == "development" {
 		frontendAssets = getDevFrontendAssets()
@@ -73,7 +62,6 @@ func setupMiddleware(app *fiber.App, env string) {
 	app.Use(filesystem.New(filesystem.Config{
 		Root: http.FS(frontendAssets),
 	}))
-
 }
 
 // setupMiddleware
@@ -101,4 +89,46 @@ func getProdFrontendAssets() fs.FS {
 // these changes up
 func getDevFrontendAssets() fs.FS {
 	return os.DirFS("frontend/dist")
+}
+
+// StartServerWithGracefulShutdown function for starting server with a graceful shutdown.
+func StartServerWithGracefulShutdown(app *fiber.App, logger logging.AppLogger) {
+	// Create channel for idle connections.
+	idleConnsClosed := make(chan struct{})
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt) // Catch OS signals.
+		<-sigint
+
+		// Received an interrupt signal, shutdown.
+		if err := app.Shutdown(); err != nil {
+			// Error from closing listeners, or context timeout:
+			log.Printf("Oops... Server is not shutting down! Reason: %v", err)
+		}
+
+		close(idleConnsClosed)
+	}()
+
+	// Build Fiber connection URL.
+	StartServer(app, logger)
+
+	<-idleConnsClosed
+}
+
+// StartServer func for starting a simple server.
+func StartServer(app *fiber.App, logger logging.AppLogger) {
+	port, ok := viper.Get("PORT").(string)
+
+	if !ok {
+		log.Fatalf("Could not find port ENV variable")
+	}
+
+	logger.Info("Application Bootstrap Complete")
+
+	listenErr := app.Listen(":" + port)
+
+	if listenErr != nil {
+		logger.Error("Error during listen", listenErr)
+	}
 }

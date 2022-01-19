@@ -5,11 +5,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewZapSugarLogger(env string) *zap.SugaredLogger {
+func NewZapSugarLogger(logName string) *zap.SugaredLogger {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{
 		"stdout",
-		"./var/log/service.log",
+		"./var/log/" + logName + ".log",
 	}
 
 	b, err := cfg.Build()

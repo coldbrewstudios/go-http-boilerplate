@@ -6,38 +6,25 @@ import (
 
 type AppLogger interface {
 	Info(msg string, keysAndValues ...interface{})
+	Error(msg string, keysAndValues ...interface{})
 }
 
-type logInstance struct {
+type logger struct {
 	instance *zap.SugaredLogger
 }
 
-func CreateLogger(env string, logName string) *logInstance {
+func CreateLogger(logName string) AppLogger {
 	NewLogFile(logName)
-	zapLogger := NewZapSugarLogger(env)
-
-	return &logInstance{
+	zapLogger := NewZapSugarLogger(logName)
+	return &logger{
 		instance: zapLogger,
 	}
 }
 
-func (l *logInstance) Info(msg string, keysAndValues ...interface{}) {
+func (l *logger) Info(msg string, keysAndValues ...interface{}) {
 	l.instance.Infow(msg, keysAndValues...)
 }
 
-func (l *logInstance) Error(msg string, keysAndValues ...interface{}) {
+func (l *logger) Error(msg string, keysAndValues ...interface{}) {
 	l.instance.Errorw(msg, keysAndValues...)
-}
-
-// Mocks
-type FakeLogger struct {
-	instance fakeZapLogger
-}
-
-type fakeZapLogger interface {
-	Infow(msg string, keysAndValues ...interface{})
-}
-
-func (l *FakeLogger) Info(msg string, keysAndValues ...interface{}) {
-	l.instance.Infow(msg, keysAndValues...)
 }
