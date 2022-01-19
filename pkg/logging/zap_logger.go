@@ -6,11 +6,10 @@ import (
 )
 
 func NewZapSugarLogger(env string) *zap.SugaredLogger {
-	fmt.Println(env)
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{
 		"stdout",
-		"./var/log/file.log",
+		"./var/log/service.log",
 	}
 
 	b, err := cfg.Build()
@@ -19,6 +18,7 @@ func NewZapSugarLogger(env string) *zap.SugaredLogger {
 	}
 
 	defer b.Sync()
+
 	sugar := b.Sugar()
 	return sugar
 }

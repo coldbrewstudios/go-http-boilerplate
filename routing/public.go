@@ -7,10 +7,10 @@ import (
 
 func CreatePublicRoutes(rg fiber.Router) {
 	rg.Get("/status", func(ctx *fiber.Ctx) error {
-		return ctx.Status(200).SendString("OK")
+		return ctx.Status(fiber.StatusOK).SendString("OK")
 	})
 
 	rg.Get("/law", func(ctx *fiber.Ctx) error {
-		return ctx.Status(200).JSON(handlers.GetRandomLaw())
+		return ctx.Status(fiber.StatusOK).JSON(handlers.GetRandomLaw())
 	})
 }

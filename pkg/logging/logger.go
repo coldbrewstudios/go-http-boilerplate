@@ -12,8 +12,10 @@ type logInstance struct {
 	instance *zap.SugaredLogger
 }
 
-func CreateLogger(env string) *logInstance {
+func CreateLogger(env string, logName string) *logInstance {
+	NewLogFile(logName)
 	zapLogger := NewZapSugarLogger(env)
+
 	return &logInstance{
 		instance: zapLogger,
 	}

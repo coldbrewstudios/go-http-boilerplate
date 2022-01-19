@@ -5,8 +5,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	fiberLogger "github.com/gofiber/fiber/v2/middleware/logger"
 	fibreLogger "github.com/gofiber/fiber/v2/middleware/logger"
-	fibreRecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/spf13/viper"
 	"go-http-boilerplate/pkg/logging"
 	"go-http-boilerplate/routing"
@@ -33,8 +33,7 @@ func main() {
 		log.Fatalf("Could not find port ENV variable")
 	}
 
-	logger := logging.CreateLogger(env)
-
+	logger := logging.CreateLogger(env, "service")
 	port, ok := viper.Get("PORT").(string)
 
 	if !ok {
@@ -42,10 +41,9 @@ func main() {
 	}
 
 	app := fiber.New()
-	httpLogFile := setupHttpLogs()
-	loggerConfig := fibreLogger.Config{Output: httpLogFile}
-	setupMiddleware(app, loggerConfig, env)
+	setupMiddleware(app, env)
 	setupRouting(app)
+	logger.Info("Application Bootstrap Complete")
 
 	listenErr := app.Listen(":" + port)
 
@@ -54,12 +52,9 @@ func main() {
 	}
 }
 
-func setupRouting(app *fiber.App) {
-	baseRouter := app.Group("/api/v1")
-	routing.CreatePublicRoutes(baseRouter)
-}
-
-func setupMiddleware(app *fiber.App, lc fibreLogger.Config, env string) {
+// setupMiddleware
+// Sets up all middleware for Fiber
+func setupMiddleware(app *fiber.App, env string) {
 	var frontendAssets fs.FS
 
 	if env == "development" {
@@ -68,27 +63,30 @@ func setupMiddleware(app *fiber.App, lc fibreLogger.Config, env string) {
 		frontendAssets = getProdFrontendAssets()
 	}
 
-	app.Use(fibreRecover.New())
-	app.Use(fibreLogger.New(lc))
+	app.Use(fibreLogger.New(fiberLogger.Config{
+		Format: "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
+	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:8080",
+		AllowOrigins: "http://localhost:3000",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 	app.Use(filesystem.New(filesystem.Config{
 		Root: http.FS(frontendAssets),
 	}))
+
 }
 
-func setupHttpLogs() *os.File {
-	file, err := os.OpenFile("./var/log/http.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+// setupMiddleware
+// Sets up all routes and base groups for the application
+func setupRouting(app *fiber.App) {
+	baseRouter := app.Group("/api/v1")
 
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-
-	return file
+	routing.CreatePublicRoutes(baseRouter)
 }
 
+// getProdFrontendAssets
+// Uses frontend to create an embed file system for build time to bundle assets together
+// in production
 func getProdFrontendAssets() fs.FS {
 	f, err := fs.Sub(frontend, "frontend/dist")
 	if err != nil {
@@ -98,6 +96,9 @@ func getProdFrontendAssets() fs.FS {
 	return f
 }
 
+// getProdFrontendAssets
+// Serves the fronted/dist folder as the underlying file system. If this is being changed it will also pick
+// these changes up
 func getDevFrontendAssets() fs.FS {
 	return os.DirFS("frontend/dist")
 }
